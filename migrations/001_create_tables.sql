@@ -1,0 +1,101 @@
+-- TABELA DE USUÁRIOS
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- TABELA DE RECEITAS
+CREATE TABLE incomes (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    recurrence VARCHAR(50) NOT NULL,
+    receive_date INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  
+);
+
+-- TABELA DE CATEGORIAS DE DESPESAS
+CREATE TABLE expense_categories (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    color VARCHAR(7) DEFAULT '#FF6B35',
+    icon VARCHAR(50) DEFAULT 'tag',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- TABELA DE DESPESAS
+CREATE TABLE expenses(
+    id SERIAL PRIMARY KEY, 
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    category_id INTEGER REFERENCES expense_categories(id) ON DELETE SET NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    description VARCHAR(255),
+    date DATE DEFAULT CURRENT_DATE,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- TABELA DE PORQUINHOS
+CREATE TABLE piggy_banks (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    goal TEXT,
+    bank VARCHAR(100) DEFAULT 'Outro',
+    balance DECIMAL(12, 2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- TABELA DE TRANSAÇÕES DOS PORQUINHOS
+CREATE TABLE piggy_transactions (
+    id SERIAL PRIMARY KEY,
+    piggy_bank_id INTEGER REFERENCES piggy_banks(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(20) CHECK (type IN ('deposit', 'withdrawal')),
+    amount DECIMAL(12, 2) NOT NULL,
+    description TEXT,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FUNÇÃO PARA ATUALIZAR UPDATED_AT
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$ 
+BEGIN 
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- TRIGGERS PARA ATUALIZAR UPDATED_AT
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_incomes_updated_at
+    BEFORE UPDATE ON incomes
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_expenses_updated_at
+    BEFORE UPDATE ON expenses
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_piggy_banks_updated_at
+    BEFORE UPDATE ON piggy_banks
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ÍNDICES PARA MELHORAR DESEMPENHO
+CREATE INDEX idx_incomes_user_id ON incomes(user_id);
+CREATE INDEX idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX idx_expenses_date ON expenses(date);
+CREATE INDEX idx_piggy_banks_user_id ON piggy_banks(user_id);
+CREATE INDEX idx_piggy_transactions_piggy_bank_id ON piggy_transactions(piggy_bank_id);
