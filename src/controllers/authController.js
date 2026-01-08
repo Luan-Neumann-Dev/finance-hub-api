@@ -6,6 +6,10 @@ const register = async (req, res) => {
     const { email, password, full_name } = req.body;
 
     try {
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email e senha obrigatórios' })
+        }
+
         const userExists = await pool.query(
             'SELECT * FROM users WHERE email = $1',
             [email]
@@ -25,6 +29,23 @@ const register = async (req, res) => {
 
         const user = result.rows[0];
 
+        const defaultCategories = [
+            { name: 'Alimentação', color: '#FF6B35', icon: 'utensils' },
+            { name: 'Transporte', color: '#4ECDC4', icon: 'car' },
+            { name: 'Moradia', color: '#45B7D1', icon: 'home' },
+            { name: 'Saúde', color: '#96CEB4', icon: 'heart' },
+            { name: 'Lazer', color: '#FFEAA7', icon: 'smile' },
+            { name: 'Educação', color: '#A29BFE', icon: 'book' },
+            { name: 'Outros', color: '#95A5A6', icon: 'tag' },
+        ];
+
+        for (const category of defaultCategories) {
+            await pool.query(
+                'INSERT INTO expense_categories (user_id, name, color, icon) VALUES ($1, $2, $3, $4)',
+                [user.id, category.name, category.color, category.icon]
+            )
+        }
+
         const token = jwt.sign(
             { userId: user.id },
             process.env.JWT_SECRET,
@@ -33,11 +54,7 @@ const register = async (req, res) => {
 
         res.status(201).json({
             message: 'Usuário criado com sucesso',
-            user: {
-                id: user.id,
-                email: user.email,
-                full_name: user.full_name
-            },
+            user,
             token
         })
 
@@ -51,6 +68,9 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email e senha obrigatórios' });
+        }
 
         const result = await pool.query(
             'SELECT * FROM users WHERE email = $1',
@@ -62,9 +82,9 @@ const login = async (req, res) => {
         }
 
         const user = result.rows[0];
+        const isValid = await bcrypt.compare(password, user.password_hash);
 
-        const isValidPassword = await bcrypt.compare(password, user.password_hash);
-        if (!isValidPassword) {
+        if (!isValid) {
             return res.status(401).json({ error: 'Email ou senha incorretos' });
         }
 
@@ -85,7 +105,7 @@ const login = async (req, res) => {
         });
     } catch (error) {
         console.error('Erro ao fazer login:', error);
-        res.status(500).json({ error: 'Erro ao fazer login'});
+        res.status(500).json({ error: 'Erro ao fazer login' });
     }
 }
 
@@ -97,7 +117,7 @@ const getMe = async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado'})
+            return res.status(404).json({ error: 'Usuário não encontrado' })
         }
 
         res.json(result.rows[0]);
@@ -107,8 +127,4 @@ const getMe = async (req, res) => {
     }
 }
 
-module.exports = {
-    register,
-    login,
-    getMe
-}
+module.exports = { register, login, getMe }
