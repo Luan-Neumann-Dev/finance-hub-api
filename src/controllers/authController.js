@@ -53,7 +53,7 @@ const login = async (req, res) => {
     try {
 
         const result = await pool.query(
-            'SELECT * FROM users WHERE email = $l',
+            'SELECT * FROM users WHERE email = $1',
             [email]
         );
 
