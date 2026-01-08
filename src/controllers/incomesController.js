@@ -8,13 +8,16 @@ const getAll = async (req, res) => {
         );
         res.json(result.rows);
     } catch (error) {
-        console.log('Erro ao buscar receitas:', error)
         res.status(500).json({ error: 'Erro ao buscar receitas' })
     }
 }
 
 const create = async (req, res) => {
     const { name, amount, recurrence, receive_date } = req.body;
+
+    if (!name || !amount) {
+        return res.status(400).json({ error: 'Nome e valor obrigatórios' })
+    }
 
     try {
         const result = await pool.query(
@@ -23,7 +26,6 @@ const create = async (req, res) => {
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        console.error('Erro ao criar receita:', error);
         res.status(500).json({ error: 'Erro ao criar receita' })
     }
 }
@@ -34,15 +36,16 @@ const update = async (req, res) => {
 
     try {
         const result = await pool.query(
-            'UPDATE incomes SET name = $1, amount = $2, recurrence = $3, receive_date = $4 WHERE id = $5 AND user_id = $6 RETURNING *',
+            'UPDATE incomes SET name = COALESCE($1, name), amount = COALESCE($2, amount), recurrence = COALESCE($3, recurrence), receive_date = COALESCE($4, receive_date) WHERE id = $5 AND user_id = $6 RETURNING *',
             [name, amount, recurrence, receive_date, id, req.userId]
         );
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Receita não encontrada' })
         }
+
+        res.json(result.rows[0]);
     } catch (error) {
-        console.error('Erro ao atualizar receita:', error);
         res.status(500).json({ error: 'Erro ao atualizar receita' })
     }
 }
@@ -59,17 +62,11 @@ const remove = async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Receita não encontrada' })
         }
-        res.json({ message: 'Receita deletada com sucesso' });
 
+        res.json({ message: 'Receita deletada com sucesso' });
     } catch (error) {
-        console.error('Erro ao deletar receita:', error);
         res.status(500).json({ error: 'Erro ao deletar receita' })
     }
 }
 
-module.exports = {
-    getAll,
-    create,
-    update,
-    remove
-}
+module.exports = { getAll, create, update, remove }
