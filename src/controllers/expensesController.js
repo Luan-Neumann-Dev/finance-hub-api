@@ -4,7 +4,7 @@ const getAll = async (req, res) => {
     try {
         const result = await pool.query(
             `SELECT e.*, ec.name as category_name, ec.color as category_color, ec.icon as category_icon
-            FROM expenses e,
+            FROM expenses e
             LEFT JOIN expense_categories ec ON e.category_id = ec.id
             WHERE e.user_id = $1
             ORDER BY e.date DESC, e.created_at DESC
