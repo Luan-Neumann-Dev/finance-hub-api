@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const incomesRoutes = require('./routes/incomesRoutes')
+const categoriesRoutes = require('./routes/categoriesRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/incomes', incomesRoutes)
+app.use('/api/categories', categoriesRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
