@@ -1,19 +1,41 @@
 const pool = require('../config/database')
 
 const getAll = async (req, res) => {
+    const { startDate, endDate, categoryId } = req.query;
+
     try {
-        const result = await pool.query(
-            `SELECT e.*, ec.name as category_name, ec.color as category_color, ec.icon as category_icon
+        let query = `
+            SELECT e.*, ec.name as category_name, ec.color as category_color, ec.icon as category_icon
             FROM expenses e
             LEFT JOIN expense_categories ec ON e.category_id = ec.id
             WHERE e.user_id = $1
-            ORDER BY e.date DESC, e.created_at DESC
-            `,
-            [req.userId]
-        )
+        `;
+
+        const params = [req.userId]
+        let paramIndex = 2;
+
+        if (startDate) {
+            query += `AND e.date >= $${paramIndex}`;
+            params.push(startDate);
+            paramIndex++;
+        }
+
+        if (endDate) {
+            query += `AND e.date <= $${paramIndex}`;
+            params.push(endDate);
+            paramIndex++;
+        }
+
+        if (categoryId) {
+            query += `AND e.category_id = $${paramIndex}`;
+            params.push(categoryId)
+        }
+
+        query += ' ORDER BY e.date DESC';
+
+        const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Erro ao buscar despesas:', error);
         res.status(500).json({ error: 'Erro ao buscar despesas' });
     }
 }
@@ -21,14 +43,17 @@ const getAll = async (req, res) => {
 const create = async (req, res) => {
     const { category_id, amount, description, date, notes } = req.body;
 
+    if (!amount || !description) {
+        return res.status(400).json({ error: 'Valor e descrição obrigatórios' });
+    }
+
     try {
         const result = await pool.query(
             'INSERT INTO expenses (user_id, category_id, amount, description, date, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [req.userId, category_id, amount, description, date, notes]
+            [req.userId, category_id, amount, description, date || new Date(), notes]
         );
         res.status(201).json(result.rows[0])
     } catch (error) {
-        console.error('Erro ao criar despesa:', error);
         res.status(500).json({ error: 'Erro ao criar despesa' });
     }
 }
@@ -39,7 +64,7 @@ const update = async (req, res) => {
 
     try {
         const result = await pool.query(
-            'UPDATE expenses SET category_id = $1, amount = $2, description = $3, date = $4, notes = $5 WHERE id = $6 AND user_id = $7 RETURNING *',
+            'UPDATE expenses SET category_id = COALESCE($1, category_id), amount = COALESCE($2, amount), description = COALESCE($3, description), date = COALESCE($4, date), notes = COALESCE($5, notes) WHERE id = $6 AND user_id = $7 RETURNING *',
             [category_id, amount, description, date, notes, id, req.userId]
         )
 
@@ -49,7 +74,6 @@ const update = async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('Erro ao atualizar despesa:', error);
         res.status(500).json({ error: 'Erro ao atualizar despesa' });
     }
 }
@@ -69,41 +93,8 @@ const remove = async (req, res) => {
 
         res.json({ message: 'Despesa deletada com sucesso' })
     } catch (error) {
-        console.error('Erro ao deletar despesa:', error);
         res.status(500).json({ error: 'Erro ao deletar despesa' });
     }
 }
 
-const getStats = async (req, res) => {
-    const {startDate, endDate} = req.query;
-
-    try {
-        const query = `
-            SELECT 
-                ec.name as category_name,
-                ec.color as category_color,
-                SUM(e.amount) as total,
-            FROM expenses e
-            LEFT JOIN expense_categories ec ON e.category_id = ec.id
-            WHERE e.user_id = $1
-                ${startDate ? 'AND e.date >= $2' : ''}
-                ${endDate ? 'AND e.date <= $' + (startDate ? '3' : '2') : ''}
-            GROUP BY ec.id, ec.name, ec.color
-            ORDER BY total DESC
-        `;
-
-        const params = [req.userId];
-        if (startDate) params.push(startDate);
-        if (endDate) params.push(endDate);
-
-        const result = await pool.query(query, params);
-        res.json(result.rows);
-    } catch (error) {
-        console.error('Erro ao buscar estatísticas de despesas:', error);
-        res.status(500).json({ error: 'Erro ao buscar estatísticas de despesas' });
-    }
-};
-
-module.exports = {
-    getAll, create, update, remove, getStats
-}
+module.exports = { getAll, create, update, remove }
