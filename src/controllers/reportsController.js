@@ -25,8 +25,8 @@ const getDashboardSummary = async (req, res) => {
         );
 
         const totalIncome = parseFloat(incomesResult.rows[0].total);
-        const totalExpenses = parseFloat(incomesResult.rows[0].total);
-        const totalSavings = parseFloat(incomesResult.rows[0].total);
+        const totalExpenses = parseFloat(expensesResult.rows[0].total);
+        const totalSavings = parseFloat(savingsResult.rows[0].total);
         const balance = totalIncome - totalExpenses;
 
         res.json({
