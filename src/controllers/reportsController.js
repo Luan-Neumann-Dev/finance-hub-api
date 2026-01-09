@@ -89,7 +89,7 @@ const getExpensesByCategory = async (req, res) => {
 
 const getMonthlyEvolution = async (req, res) => {
     try {
-      const query = `
+        const query = `
         WITH months AS (
           SELECT generate_series(
             date_trunc('month', CURRENT_DATE - INTERVAL '5 months'),
@@ -113,19 +113,19 @@ const getMonthlyEvolution = async (req, res) => {
         GROUP BY m.month
         ORDER BY m.month
       `;
-  
-      const result = await pool.query(query, [req.userId]);
-  
-      res.json(result.rows.map(row => ({
-        month: row.month_name,
-        incomes: parseFloat(row.income),
-        expenses: parseFloat(row.expenses),
-        balance: parseFloat(row.income) - parseFloat(row.expenses)
-      })));
+
+        const result = await pool.query(query, [req.userId]);
+
+        res.json(result.rows.map(row => ({
+            month: row.month_name,
+            incomes: parseFloat(row.income),
+            expenses: parseFloat(row.expenses),
+            balance: parseFloat(row.income) - parseFloat(row.expenses)
+        })));
     } catch (error) {
-      res.status(500).json({ error: 'Erro ao buscar evolução mensal' });
+        res.status(500).json({ error: 'Erro ao buscar evolução mensal' });
     }
-  };
+};
 
 const getYearlyComparison = async (req, res) => {
     const { year } = req.query;
