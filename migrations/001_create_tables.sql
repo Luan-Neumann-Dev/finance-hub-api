@@ -63,7 +63,7 @@ CREATE TABLE piggy_transactions (
     type VARCHAR(20) CHECK (type IN ('deposit', 'withdrawal')),
     amount DECIMAL(12, 2) NOT NULL,
     description TEXT,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

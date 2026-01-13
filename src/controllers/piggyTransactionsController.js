@@ -5,7 +5,7 @@ const getByPiggyBank = async (req, res) => {
 
     try {
         const piggyCheck = await pool.query(
-            'SELECT id FROM WHERE id = $1 AND user_id $2',
+            'SELECT id FROM piggy_banks WHERE id = $1 AND user_id = $2',
             [piggyBankId, req.userId]
         )
 
