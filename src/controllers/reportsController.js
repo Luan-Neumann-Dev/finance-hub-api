@@ -3,7 +3,7 @@ const pool = require('../config/database')
 const getDashboardSummary = async (req, res) => {
     try {
         const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now().getMonth(), 1);
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
         //Total de receitas mensais
@@ -83,6 +83,7 @@ const getExpensesByCategory = async (req, res) => {
         })))
 
     } catch (error) {
+        console.error('Erro ao buscar despesas por categoria:', error);
         res.status(500).json({ error: 'Erro ao buscar despesas por categoria' })
     }
 }
@@ -123,6 +124,7 @@ const getMonthlyEvolution = async (req, res) => {
             balance: parseFloat(row.income) - parseFloat(row.expenses)
         })));
     } catch (error) {
+        console.error('Erro ao buscar evolução mensal:', error);
         res.status(500).json({ error: 'Erro ao buscar evolução mensal' });
     }
 };
@@ -134,7 +136,7 @@ const getYearlyComparison = async (req, res) => {
     try {
         const query = `
             WITH months AS (
-                SELECT generate_series(1, 12) as mount_num
+                SELECT generate_series(1, 12) as month_num
             ),
             yearly_incomes AS (
                 SELECT COALESCE(SUM(amount), 0) as total
@@ -144,7 +146,7 @@ const getYearlyComparison = async (req, res) => {
             SELECT
                 TO_CHAR(make_date($1::integer, m.month_num, 1), 'Mon') as month_name,
                 COALESCE(SUM(e.amount), 0) as expenses,
-                (SELECT total FROM yearly_income) as income
+                (SELECT total FROM yearly_incomes) as income
             FROM months m
             LEFT JOIN expenses e ON
                 EXTRACT(MONTH FROM e.date) = m.month_num AND
@@ -162,7 +164,8 @@ const getYearlyComparison = async (req, res) => {
             expenses: parseFloat(row.expenses)
         })))
     } catch (error) {
-        res.status(500).json({ error: 'Eoo ao buscar comparação anual' })
+        console.error('Erro ao buscar comparação anual:', error);
+        res.status(500).json({ error: 'Erro ao buscar comparação anual' })
     }
 }
 
@@ -197,6 +200,7 @@ const getTopExpenses = async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
+        console.error('Erro ao buscar maiores despesas:', error);
         res.status(500).json({ error: 'Erro ao buscar maiores despesas' });
     }
 }
